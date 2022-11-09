@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "gif-search-app",
+    "slug": "gif-search-app",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  },
+  "name": "gif-search-app"
+}
