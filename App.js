@@ -1,31 +1,34 @@
-import React, { useEffect, useState } from "react";
-import {
-  FlatList,
-  Text,
-  View,
-  Image,
-  TextInput,
-  StyleSheet,
-} from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { FlatList, Text, View, Image, StyleSheet } from "react-native";
 import { Searchbar } from "react-native-paper";
 import debounce from "lodash/debounce";
 
 const App = () => {
   const [isLoading, setLoading] = useState(true);
   const [data, setData] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("chili");
-
-  const onChangeSearch = (query) => setSearchQuery(query);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
-    fetch(
-      `http://api.giphy.com/v1/gifs/search?q=${searchQuery}&api_key=p7D0xFESzcNBPN6fTM595XvT2PUiJ8YV&limit=30`
-    ) // #TODO: ielikt KEY in .env file
-      .then((response) => response.json())
-      .then((json) => setData(json))
-      .catch((error) => console.error(error))
-      .finally(() => setLoading(false));
-  }, [searchQuery]);
+    handleSearch();
+  }, []);
+
+  const handleChange = (input) => {
+    setQuery(input);
+    handleSearch(input);
+  };
+
+  const handleSearch = useCallback(
+    debounce((value = "") => {
+      fetch(
+        `http://api.giphy.com/v1/gifs/search?q=${value}&api_key=p7D0xFESzcNBPN6fTM595XvT2PUiJ8YV&limit=30`
+      ) // #TODO: ielikt KEY in .env file
+        .then((response) => response.json())
+        .then((json) => setData(json))
+        .catch((error) => console.error(error))
+        .finally(() => setLoading(false));
+    }, 300),
+    []
+  );
 
   return (
     <View style={{ flex: 1, padding: 24 }}>
@@ -33,16 +36,16 @@ const App = () => {
         <Text>Loading...</Text>
       ) : (
         <View style={styles.topContainer}>
-          <Text style={styles.title}>GIFs:</Text>
+          <Text style={styles.title}>Chili GIFs:</Text>
           <Searchbar
-            placeholder="Search"
-            onChangeText={onChangeSearch}
-            value={searchQuery}
+            placeholder="Type your search here"
+            onChangeText={handleChange}
+            value={query}
           />
 
           <FlatList
             data={data.data}
-            keyExtractor={({ id }, index) => id}
+            keyExtractor={({ id }) => id}
             renderItem={({ item }) => (
               <Image
                 source={{
