@@ -15,12 +15,12 @@ const App = () => {
   const [isLoading, setLoading] = useState(true);
   const [data, setData] = useState([]);
   const [query, setQuery] = useState("");
-  // const [isLoadingMoreData, setIsLoadingMoreData] = useState(false);
+  const [page, setPage] = useState(1);
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
     setData([]);
-    resetOffset();
+    // resetOffset();
   }, [query]);
 
   const WINDOW_PADDING = 10;
@@ -32,10 +32,11 @@ const App = () => {
     setQuery(input);
   };
 
-  // #TODO: Nepushot Constants failu
-  const handleSearch = debounce((input = "") => {
-    console.log("input of handleSearch: ", input);
-
+  const loadData = (input, page, offset) => {
+    setPage(page + 1);
+    setOffset(itemLimit * page);
+    console.log("offset in loadData =>", offset);
+    console.log("page in loadData =>", page);
     fetch(
       `http://api.giphy.com/v1/gifs/search?q=${input}&api_key=${PRIVATE_KEY}&limit=${itemLimit}&offset=${offset}`,
       {
@@ -48,28 +49,30 @@ const App = () => {
     )
       .then((response) => response.json())
       .then((json) => {
-        if (json?.data.length > 0) setOffset(offset + itemLimit); // #TODO: Ja nenoscrollē līdz lejai, tad offset celšana sanāk lieka darbība. Problēma?
-                setData([...data, ...json?.data]);
-        console.log("data in debounce =>", data);
+        // if (json?.data.length > 0) setOffset(offset + itemLimit);
+        if (json?.data.length > 0) setData([...data, ...json?.data]); // Vai šis if jau nenohandlo situāciju, kur data array nav jāpapildina?
       })
-
       .catch((error) => console.error(error))
       .finally(() => setLoading(false));
-  }, 500);
+    console.log("Run loadData");
+  };
+
+  // #TODO: Nepushot Constants failu
+  const handleSearch = useCallback(
+    debounce((input = "") => {
+      loadData(input, 1);
+      console.log("Run debounce");
+    }, 300),
+    [offset]
+  );
   // [offset] // Ar šito data in debounce === [], jaunie GIFI nepieliekas klāt.
   // [query] // Ar šito izskatās, ka API call uz katra burta un nav pagination kad nobraucu līdz ekrāna apakšai.
   // [input] // error, ka input not defined.
 
-  const resetOffset = () => {
-    setOffset(0);
-  };
-
   useEffect(() => {
     handleSearch(query, [query]);
-    // console.log("run useEffect");
   }, [query]);
 
-  console.log("data end=>", data);
   return (
     <View style={{ flex: 1, paddingHorizontal: WINDOW_PADDING }}>
       {isLoading ? (
@@ -93,10 +96,9 @@ const App = () => {
             keyExtractor={(item) => item.id}
             numColumns={3}
             onEndReachedThreshold={0.5}
-            // onEndReached={() => handleSearch(query)}
             onEndReached={() => {
-              handleSearch(query);
-              resetOffset;
+              // handleSearch(query);
+              loadData(query, page, offset);
             }}
             renderItem={({ item }) => (
               <Image
