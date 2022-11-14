@@ -35,8 +35,8 @@ const App = () => {
   const loadData = (input, page, offset) => {
     setPage(page + 1);
     setOffset(itemLimit * page);
-    console.log("offset in loadData =>", offset);
-    console.log("page in loadData =>", page);
+    // console.log("offset in loadData =>", offset);
+    // console.log("page in loadData =>", page);
     fetch(
       `http://api.giphy.com/v1/gifs/search?q=${input}&api_key=${PRIVATE_KEY}&limit=${itemLimit}&offset=${offset}`,
       {
@@ -49,7 +49,6 @@ const App = () => {
     )
       .then((response) => response.json())
       .then((json) => {
-        // if (json?.data.length > 0) setOffset(offset + itemLimit);
         if (json?.data.length > 0) setData([...data, ...json?.data]); // Vai šis if jau nenohandlo situāciju, kur data array nav jāpapildina?
       })
       .catch((error) => console.error(error))
@@ -65,9 +64,6 @@ const App = () => {
     }, 300),
     [offset]
   );
-  // [offset] // Ar šito data in debounce === [], jaunie GIFI nepieliekas klāt.
-  // [query] // Ar šito izskatās, ka API call uz katra burta un nav pagination kad nobraucu līdz ekrāna apakšai.
-  // [input] // error, ka input not defined.
 
   useEffect(() => {
     handleSearch(query, [query]);
