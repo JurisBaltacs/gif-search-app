@@ -19,12 +19,10 @@ const App = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [data, setData] = useState([]);
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(1);
-  const [offset, setOffset] = useState(0);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     setData([]);
-    console.log("query", query);
   }, [query]);
 
   const WINDOW_PADDING = 10;
@@ -36,10 +34,10 @@ const App = () => {
     setQuery(input);
   };
 
-  const loadData = (input, page, offset) => {
+  const loadData = (input, page) => {
     setIsLoadingMore(true);
-    setPage(page + 1);
-    setOffset(itemLimit * page);
+    offset = itemLimit * page;
+
     fetch(
       `http://api.giphy.com/v1/gifs/search?q=${input}&api_key=${PRIVATE_KEY}&limit=${itemLimit}&offset=${offset}`,
       {
@@ -53,21 +51,17 @@ const App = () => {
       .then((response) => response.json())
       .then((json) => {
         if (json?.data.length > 0) setData([...data, ...json?.data]); // Vai šis if jau nenohandlo situāciju, kur data array nav jāpapildina?
-        console.log("data after fetch", ...data);
       })
       .catch((error) => console.error(error))
-      .finally(
-        () => setLoading(false)
-        // , setIsLoadingMore(false)
-      );
+      .finally(() => setLoading(false), setPage(page + 1));
   };
 
   // #TODO: Nepushot Constants failu
   const handleSearch = useCallback(
     debounce((input = "") => {
-      loadData(input, 1);
+      loadData(input, page);
     }, 300),
-    [offset]
+    []
   );
 
   // const LoadMoreGifs = () => {
@@ -78,7 +72,7 @@ const App = () => {
     handleSearch(query, [query]);
   }, [query]);
 
-  console.log("data being displayed:", data);
+  // console.log("data being displayed:", data);
   return (
     <SafeAreaView style={styles.AndroidSafeArea}>
       <View style={{ flex: 1, paddingHorizontal: WINDOW_PADDING }}>
@@ -139,7 +133,7 @@ const styles = StyleSheet.create({
     height: 40,
     marginBottom: 10,
   },
-  // AndroidSafeArea view style taken from: https://stackoverflow.com/questions/51289587/how-to-use-safeareaview-for-android-notch-devices
+  // AndroidSafeArea view taken from: https://stackoverflow.com/questions/51289587/how-to-use-safeareaview-for-android-notch-devices
   AndroidSafeArea: {
     flex: 1,
     backgroundColor: "white",
