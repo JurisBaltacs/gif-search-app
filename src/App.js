@@ -17,10 +17,11 @@ import PRIVATE_KEY from "./Constants";
 
 const App = () => {
   const [isLoading, setLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoaderVisible, setIsLoaderVisible] = useState(false);
   const [data, setData] = useState([]);
   const [query, setQuery] = useState("");
-  const [page, setPage] = useState(0);
+  // const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(-1);
 
   useEffect(() => {
     setData([]);
@@ -33,73 +34,75 @@ const App = () => {
 
   const handleChange = (input) => {
     setQuery(input);
-    setIsLoadingMore(false);
   };
 
-  const loadData = (input, page) => {
-    // setLoading(true);
-    offset = itemLimit * page;
-    fetch(
-      `http://api.giphy.com/v1/gifs/search?q=${input}&api_key=${PRIVATE_KEY}&limit=${itemLimit}&offset=${offset}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      }
-    )
-      .then((response) => response.json())
-      .then((json) => {
-        if (json?.data.length > 0) setData([...data, ...json?.data]); // Vai šis if jau nenohandlo situāciju, kur data array nav jāpapildina?
-      })
-      .catch((error) => console.error(error))
-      .finally(
-        () => setLoading(false),
-
-        setPage(page + 1)
-      );
-    // console.log("isLoadingMore =>", isLoadingMore);
+  const loadData = (input) => {
+    if (
+      (totalCount - data.length > 0 ||
+        (data.length == 0 && totalCount == -1)) &&
+      !(data.length == totalCount)
+    ) {
+      fetch(
+        `http://api.giphy.com/v1/gifs/search?q=${input}&api_key=${PRIVATE_KEY}&limit=${itemLimit}&offset=${data.length}`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+        }
+      )
+        .then((response) => response.json())
+        .then((json) => {
+          setTotalCount(json.pagination.total_count);
+          if (json?.data.length > 0) {
+            setData([...data, ...json?.data]);
+          }
+        })
+        .catch((error) => console.error(error))
+        .finally(() => setLoading(false));
+    } // Vai šeit nevajag else bloku gadījumam, kad vairs nav datu, ko ielādēt?
   };
 
   // #TODO: Nepushot Constants failu
   const handleSearch = useCallback(
     debounce((input = "") => {
-      loadData(input, page);
+      loadData(input);
     }, 300),
     []
   );
 
-  const LoadMore = () => {
-    // return isLoadingMore ? <Text>Loading more GIFs...</Text> : null;
-    return isLoadingMore ? (
+  const ShowLoader = () => {
+    return isLoaderVisible ? (
       <ActivityIndicator size="small" color="#ff3b47" />
     ) : null;
+  };
+
+  const toggleLoader = () => {
+    data.length !== totalCount
+      ? setIsLoaderVisible(true)
+      : setIsLoaderVisible(false);
   };
 
   useEffect(() => {
     handleSearch(query, [query]);
   }, [query]);
 
-  // console.log("data being displayed:", data);
   return (
     <SafeAreaView style={styles.androidSafeArea}>
       <View style={{ flex: 1, paddingHorizontal: WINDOW_PADDING }}>
         {isLoading ? (
-          // <Text>Loading...</Text>
-          <View style={styles.indicator}>
+          <View style={styles.activityIndicator}>
             <ActivityIndicator size="large" color="#ff3b47" />
           </View>
         ) : (
           <View style={styles.topContainer}>
-            <Text style={styles.title}>Chili GIFs</Text>
+            <Text style={styles.title}>Chili's GIFs</Text>
             <Searchbar
               placeholder="Type your search here"
               onChangeText={handleChange}
               value={query}
               style={styles.searchBar}
-
-              // #TODO: ieviest onSend. Tagad nekas nenotiek.
             />
 
             <FlatList
@@ -107,10 +110,10 @@ const App = () => {
               keyExtractor={(item) => item.id}
               numColumns={3}
               onEndReachedThreshold={0.5}
-              ListFooterComponent={LoadMore}
+              ListFooterComponent={ShowLoader()}
               onEndReached={() => {
-                loadData(query, page, offset);
-                setIsLoadingMore(true);
+                loadData(query);
+                toggleLoader();
               }}
               renderItem={({ item }) => (
                 <Image
@@ -118,13 +121,11 @@ const App = () => {
                     uri: item.images.preview_gif.url,
                   }}
                   style={{ width: gifSize, height: gifSize, margin: 2 }}
-                  // #TODO: pielikt border top
                 />
               )}
             />
           </View>
         )}
-        {/* <View>{isLoadingMore ? <Text>Loading more GIFs...</Text> : null}</View> */}
       </View>
     </SafeAreaView>
   );
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
-  indicator: {
+  activityIndicator: {
     flex: 1,
     justifyContent: "center",
   },
