@@ -9,6 +9,7 @@ import {
   Platform,
   StatusBar,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { Searchbar } from "react-native-paper";
 import debounce from "lodash/debounce";
@@ -32,12 +33,12 @@ const App = () => {
 
   const handleChange = (input) => {
     setQuery(input);
+    setIsLoadingMore(false);
   };
 
   const loadData = (input, page) => {
-    setIsLoadingMore(true);
+    // setLoading(true);
     offset = itemLimit * page;
-
     fetch(
       `http://api.giphy.com/v1/gifs/search?q=${input}&api_key=${PRIVATE_KEY}&limit=${itemLimit}&offset=${offset}`,
       {
@@ -53,7 +54,12 @@ const App = () => {
         if (json?.data.length > 0) setData([...data, ...json?.data]); // Vai šis if jau nenohandlo situāciju, kur data array nav jāpapildina?
       })
       .catch((error) => console.error(error))
-      .finally(() => setLoading(false), setPage(page + 1));
+      .finally(
+        () => setLoading(false),
+
+        setPage(page + 1)
+      );
+    // console.log("isLoadingMore =>", isLoadingMore);
   };
 
   // #TODO: Nepushot Constants failu
@@ -64,9 +70,12 @@ const App = () => {
     []
   );
 
-  // const LoadMoreGifs = () => {
-  //   return isLoading ? <Text>Loading more GIFs...</Text> : null;
-  // };
+  const LoadMore = () => {
+    // return isLoadingMore ? <Text>Loading more GIFs...</Text> : null;
+    return isLoadingMore ? (
+      <ActivityIndicator size="small" color="#ff3b47" />
+    ) : null;
+  };
 
   useEffect(() => {
     handleSearch(query, [query]);
@@ -74,13 +83,16 @@ const App = () => {
 
   // console.log("data being displayed:", data);
   return (
-    <SafeAreaView style={styles.AndroidSafeArea}>
+    <SafeAreaView style={styles.androidSafeArea}>
       <View style={{ flex: 1, paddingHorizontal: WINDOW_PADDING }}>
         {isLoading ? (
-          <Text>Loading...</Text>
+          // <Text>Loading...</Text>
+          <View style={styles.indicator}>
+            <ActivityIndicator size="large" color="#ff3b47" />
+          </View>
         ) : (
           <View style={styles.topContainer}>
-            <Text style={styles.title}>Chili GIFs:</Text>
+            <Text style={styles.title}>Chili GIFs</Text>
             <Searchbar
               placeholder="Type your search here"
               onChangeText={handleChange}
@@ -95,10 +107,11 @@ const App = () => {
               keyExtractor={(item) => item.id}
               numColumns={3}
               onEndReachedThreshold={0.5}
+              ListFooterComponent={LoadMore}
               onEndReached={() => {
                 loadData(query, page, offset);
+                setIsLoadingMore(true);
               }}
-              // ListFooterComponent={LoadMoreGifs}
               renderItem={({ item }) => (
                 <Image
                   source={{
@@ -109,9 +122,9 @@ const App = () => {
                 />
               )}
             />
-            <View>{isLoading ? <Text>Loading more GIFs...</Text> : null}</View>
           </View>
         )}
+        {/* <View>{isLoadingMore ? <Text>Loading more GIFs...</Text> : null}</View> */}
       </View>
     </SafeAreaView>
   );
@@ -123,7 +136,7 @@ const styles = StyleSheet.create({
     flexDirection: "column",
   },
   title: {
-    fontSize: 14,
+    fontSize: 18,
     color: "#010101",
     textAlign: "center",
     paddingTop: 30,
@@ -133,11 +146,15 @@ const styles = StyleSheet.create({
     height: 40,
     marginBottom: 10,
   },
-  // AndroidSafeArea view taken from: https://stackoverflow.com/questions/51289587/how-to-use-safeareaview-for-android-notch-devices
-  AndroidSafeArea: {
+  // androidSafeArea view taken from: https://stackoverflow.com/questions/51289587/how-to-use-safeareaview-for-android-notch-devices
+  androidSafeArea: {
     flex: 1,
     backgroundColor: "white",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+  },
+  indicator: {
+    flex: 1,
+    justifyContent: "center",
   },
 });
 
