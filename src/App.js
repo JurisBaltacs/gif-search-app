@@ -20,7 +20,6 @@ const App = () => {
   const [isLoaderVisible, setIsLoaderVisible] = useState(false);
   const [data, setData] = useState([]);
   const [query, setQuery] = useState("");
-  // const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(-1);
 
   useEffect(() => {
@@ -28,22 +27,22 @@ const App = () => {
   }, [query]);
 
   const WINDOW_PADDING = 10;
+  const ITEM_LIMIT = 20;
   const windowWidth = useWindowDimensions().width;
   const gifSize = (windowWidth - WINDOW_PADDING * 2) / 3;
-  const itemLimit = 20;
 
   const handleChange = (input) => {
     setQuery(input);
+    setIsLoaderVisible(false);
   };
 
   const loadData = (input) => {
     if (
-      (totalCount - data.length > 0 ||
-        (data.length == 0 && totalCount == -1)) &&
-      !(data.length == totalCount)
+      totalCount - data.length > 0 ||
+      (data.length === 0 && totalCount === -1)
     ) {
       fetch(
-        `http://api.giphy.com/v1/gifs/search?q=${input}&api_key=${PRIVATE_KEY}&limit=${itemLimit}&offset=${data.length}`,
+        `http://api.giphy.com/v1/gifs/search?q=${input}&api_key=${PRIVATE_KEY}&limit=${ITEM_LIMIT}&offset=${data.length}`,
         {
           method: "GET",
           headers: {
@@ -61,12 +60,11 @@ const App = () => {
         })
         .catch((error) => console.error(error))
         .finally(() => setLoading(false));
-    } // Vai šeit nevajag else bloku gadījumam, kad vairs nav datu, ko ielādēt?
+    }
   };
 
-  // #TODO: Nepushot Constants failu
   const handleSearch = useCallback(
-    debounce((input = "") => {
+    debounce((input) => {
       loadData(input);
     }, 300),
     []
@@ -109,7 +107,7 @@ const App = () => {
               data={data}
               keyExtractor={(item) => item.id}
               numColumns={3}
-              onEndReachedThreshold={0.5}
+              onEndReachedThreshold={0.8}
               ListFooterComponent={ShowLoader()}
               onEndReached={() => {
                 loadData(query);
